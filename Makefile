@@ -1,14 +1,14 @@
 CC= gcc
 CFLAGS= -Wall -Wextra -pedantic -ansi -g
 
-BINARIES= task3.out
+BINARIES= task5.out
 SOURCES= list.c io.c
 
 OBJS=$(patsubst %.c, %.o, $(SOURCES))
 
 all: $(BINARIES)
 
-task3.out: main.o $(OBJS)
+task5.out: main.o $(OBJS)
 	$(CC) $(CFLAGS) $^ -o $@
 
 %.o: %.c 

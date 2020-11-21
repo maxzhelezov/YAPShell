@@ -25,7 +25,7 @@ void fill_buf(){
     errno = 0;
     CUR_BUF = read(0, RBUF, BUF_SIZE);
     if (CUR_BUF == -1)
-        perr(strerror(errno));
+        perror(strerror(errno));
 }
 
 void printstr(char *s){
@@ -42,7 +42,7 @@ void printstr(char *s){
         write(1, buf, cur_buf);
 }
 
-void perr(char *s){
+void perror(char *s){
     write(2, s, strlen(s));
     write(2, "\n", 1);
     exit(1);

@@ -13,7 +13,7 @@ void fill_buf();
 void printstr(char *s);
 
 /*Печатает ошибку и умирает*/
-void perr(char *s);
+void perror(char *s);
 
 /*Печатает число*/
 void printint(int a);
