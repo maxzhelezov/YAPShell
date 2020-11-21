@@ -6,199 +6,207 @@
 #include <errno.h>
 #define SIZE 16
 
-static int c; /*текущий символ */
-list lst; /* список слов (в виде массива)*/
-static char * buf; /* буфер для накопления текущего слова*/
-static int sizebuf; /* размер буфера текущего слова*/
-static int sizelist; /* размер списка слов*/
-static int curbuf; /* индекс текущего символа в буфере*/
-static int curlist; /* индекс текущего слова в списке*/
+static int c; /* Текущий символ */
+list lst; /* Список слов (в виде массива) */
+static char * buf; /* Буфер для накопления текущего слова */
+static int size_buf; /* Размер буфера текущего слова */
+static int size_list; /* Размер списка слов */
+static int cur_buf; /* Индекс текущего символа в буфере */
+static int cur_list; /* Индекс текущего слова в списке */
 
-void clearlist()
+/* Процедура овобождения памяти из-под списка lst */
+void clear_list()
 {
     int i;
-    sizelist=0;
-    curlist=0;
-    if (lst==NULL) return;
-    for (i=0; lst[i]!=NULL; i++)
+    size_list = 0;
+    cur_list = 0;
+    if(lst == NULL) return;
+    for(i = 0; lst[i] != NULL; i++)
         free(lst[i]);
     free(lst);
-    lst=NULL;
+    lst = NULL;
 }
+
+/* Процедура иницаиализация списка lst и подготовка к его заполнению */
 static void null_list()
 {
-    sizelist=0;
-    curlist=0;
-    lst=NULL;
+    size_list = 0;
+    cur_list = 0;
+    lst = NULL;
 }
-static void termlist()
+/* Завершает создание списка слов lst */
+static void term_list()
 {
-    if (lst==NULL) return;
-    if (curlist>sizelist-1)
+    if(lst == NULL) return;
+    if(cur_list > size_list - 1)
     {
         errno = 0;
-        lst=realloc(lst,(sizelist+1)*sizeof(*lst));
-        if (lst == NULL)
-            perror(strerror(errno));
+        lst = realloc(lst, (size_list + 1) * sizeof(*lst));
+        if(lst == NULL)
+            perr(strerror(errno));
     }
-    lst[curlist]=NULL;
-    /*выравниваем используемую под список память точно по размеру списка*/
+    lst[cur_list] = NULL;
+    /* Выравниваем используемую под список память точно по размеру списка */
     errno = 0;
-    lst=realloc(lst,(sizelist=curlist+1)*sizeof(*lst));
-    if (lst == NULL)
-        perror(strerror(errno));
+    lst = realloc(lst, (size_list = cur_list + 1) * sizeof(*lst));
+    if(lst == NULL)
+        perr(strerror(errno));
 }
-static void nullbuf()
+/* Инициализация буфера buf текущего слова и подготовка к его заполнению */
+static void null_buf()
 {
-    buf=NULL;
-    sizebuf=0;
-    curbuf=0;
+    buf = NULL;
+    size_buf = 0;
+    cur_buf = 0;
 }
-static void addsym()
+/* Процедура добавления символа в буфер текущего слова buf */
+static void add_sym()
 {
-    if (curbuf>sizebuf-1)
+    if(cur_buf > size_buf - 1)
     {
         errno = 0;
-        buf=realloc(buf, sizebuf+=SIZE);
-        if (buf == NULL)
-            perror(strerror(errno));
+        buf = realloc(buf, size_buf += SIZE);
+        if(buf == NULL)
+            perr(strerror(errno));
     }
-    buf[curbuf++]=c;
+    buf[cur_buf++] = c;
 }
-static void addword()
+/* Процедура добавления слова из buf в список слов lst */
+static void add_word()
 {
-    if (curbuf>sizebuf-1)
-        buf=realloc(buf, sizebuf+=1); /* для записи ’\0’ увеличиваем буфер
-                                         при необходимости */
-    buf[curbuf++]='\0';
-    /*выравниваем используемую память точно по размеру слова*/
+    if(cur_buf > size_buf - 1)
+        buf = realloc(buf, size_buf += 1); /* Для записи ’\0’ увеличиваем буфер
+                                              при необходимости */
+    buf[cur_buf++] = '\0';
+    /* Выравниваем используемую память точно по размеру слова */
     errno = 0;
-    buf=realloc(buf,sizebuf=curbuf);
-    if (buf == NULL)
-        perror(strerror(errno));
-    if (curlist>sizelist-1)
+    buf = realloc(buf, size_buf = cur_buf);
+    if(buf == NULL)
+        perr(strerror(errno));
+    if(cur_list > size_list - 1)
     {
         errno = 0;
-        lst=realloc(lst, (sizelist+=SIZE)*sizeof(*lst));
-        if (lst == NULL)
-            perror(strerror(errno));
+        lst = realloc(lst, (size_list += SIZE) * sizeof(*lst));
+        if(lst == NULL)
+            perr(strerror(errno));
     }
-    lst[curlist++]=buf;
+    lst[cur_list++] = buf;
 }
 
-void printlist()
+/* Процедура печати списка lst */
+void print_list()
 {
     int i;
-    if (lst==NULL) return;
-    for (i=0; i<sizelist-1; i++)
+    if(lst == NULL) return;
+    for(i = 0; i < size_list - 1; i++)
     {
-        printstr(lst[i]);
-        printstr(" ");
+        print_str(lst[i]);
+        print_str(" ");
     }
-    printstr("\n");
+    print_str("\n");
 }
-static int symset(int c)
+/* Функция проверки символа на специальный */
+static int sym_set(int c)
 {
-    return c!='\n' &&
-           c!=' ' &&
-           c!='\t' &&
-           c!='>' &&
-           c!='|' &&
-           c!='&' &&
-           c!='<' &&
-           c!='(' &&
-           c!=')' &&
-           c!=';' &&
-           c!='"' &&
-           c!= EOF ;
+    return c != '\n' &&
+           c != ' ' &&
+           c != '\t' &&
+           c != '>' &&
+           c != '|' &&
+           c != '&' &&
+           c != '<' &&
+           c != '(' &&
+           c != ')' &&
+           c != ';' &&
+           c != '"' &&
+           c != EOF ;
 }
-/*Построение списка*/
+/* Построение списка */
 
-/*Вершина - функция, которую надо вызвать следующей*/
+/* Вершина - функция, которую надо вызвать следующей */
 typedef void * (*vertex)();
 
-static void * start();
-static void * word();
-static void * specsym(char cprev);
-static void * specsym2();
-static void * stop();
-static int stop_flag = 0;
+/* Описание вершин L-графа */
+static void * start(); /* Начало L-графа */
+static void * word(); /* Вершина для рапознования слова */
+static void * spec_sym(char cprev); /* Вершина для определения одного 
+                                       специального символа */
+static void * spec_sym2(); /* Вершина для определения двойных специальных 
+                              символов */
+static void * stop(); /* Вершина останова анализа */
+static int stop_flag = 0; /* Флаг остановки */
 
-void buildlist()
+/* Процедура построения списка lst */
+void build_list()
 {
-    vertex V=start;
-    c=getchar();
+    vertex V = start;
+    c = get_char();
     null_list();
     while(!stop_flag)
-        V=V();
+        V = V();
 }
 static void* start()
 {
-    if(c==' '||c=='\t')
+    if(c == ' ' || c == '\t')
     {
-        c=getchar();
+        c = get_char();
         return start;
     }
-    if (c == EOF){
-        termlist();
-        return stop;
-
-    }
-    else if (c=='\n')
+    else if(c == EOF || c == '\n')
     {
-        termlist();
+        term_list();
         return stop;
     }
     else
     {
-        char cprev=c;
-        nullbuf();
-        addsym();
-        c = getchar();
-        if (symset(cprev))
+        char cprev = c;
+        null_buf();
+        add_sym();
+        c = get_char();
+        if(sym_set(cprev))
             return word;
         else
-            return specsym(cprev);
+            return spec_sym(cprev);
     }
 }
 
 static void* word()
 {
-    if(symset(c))
+    if(sym_set(c))
     {
-        addsym();
-        c=getchar();
+        add_sym();
+        c = get_char();
         return word;
     }
     else
     {
-        addword();
+        add_word();
         return start;
     }
 }
 
-static void* specsym(char cprev)
+static void* spec_sym(char cprev)
 {
     switch (c)
     {
     case '>':
     case '|':
     case '&':
-        if (c == cprev)
+        if(c == cprev)
         {
-            addsym();
-            c = getchar();
-            return specsym2;
+            add_sym();
+            c = get_char();
+            return spec_sym2;
         }
     /* FALLTHROUGH */
     default:
-        addword();
+        add_word();
         return start;
     }
 }
-static void* specsym2()
+static void* spec_sym2()
 {
-    addword();
+    add_word();
     return start;
 }
 

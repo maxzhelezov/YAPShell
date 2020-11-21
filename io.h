@@ -1,20 +1,20 @@
 #ifndef IO_HEADER
 #define IO_HEADER
 
-#define EOF -1 /*Конец файла*/
+#define EOF -1 /* Конец файла */
 
-/*Функция выдает один символ с потока ввода*/
-int getchar();
+/* Функция выдает один символ с потока ввода */
+int get_char();
 
-/*Заполняет буфер ввода*/
+/* Заполняет буфер ввода */
 void fill_buf();
 
-/*Печатает строку*/
-void printstr(char *s);
+/* Печатает строку */
+void print_str(char *s);
 
-/*Печатает ошибку и умирает*/
-void perror(char *s);
+/* Печатает ошибку и умирает */
+void perr(char *s);
 
-/*Печатает число*/
-void printint(int a);
+/* Печатает число */
+void print_int(int a);
 #endif

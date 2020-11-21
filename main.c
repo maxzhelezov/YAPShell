@@ -1,9 +1,9 @@
 #include "list.h"
 
 int main() {
-    buildlist();
-    printlist();
-    clearlist();
+    build_list();
+    print_list();
+    clear_list();
     return 0;
 }
 

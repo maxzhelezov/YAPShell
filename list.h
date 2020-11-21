@@ -7,10 +7,10 @@
 typedef char** list; /* список слов (в виде массива)*/
 
 /*Строит список слов*/
-void buildlist();
+void build_list();
 
 /*Печтает список слов*/
-void printlist();
+void print_list();
 
-void clearlist();
+void clear_list();
 #endif
