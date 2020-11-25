@@ -6,12 +6,12 @@
 
 typedef char** list; /* список слов (в виде массива)*/
 
-/* Строит список слов */
-void build_list();
+/* Строит список слов, возвращает list */
+list build_list();
 
-/* Печтает список слов */
-void print_list();
+/* Печтает список слов lst_loc */
+void print_list(list lst_loc);
 
-/* Очищает список после работы */
-void clear_list();
+/* Очищает список lst_loc после работы */
+void clear_list(list lst_loc);
 #endif

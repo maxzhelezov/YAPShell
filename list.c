@@ -6,18 +6,67 @@
 #include <errno.h>
 #define SIZE 16
 
+/* Переменные используемые совместно функциями */
 static int c; /* Текущий символ */
-list lst; /* Список слов (в виде массива) */
+static list lst; /* Список слов (в виде массива) */
 static char * buf; /* Буфер для накопления текущего слова */
 static int size_buf; /* Размер буфера текущего слова */
 static int size_list; /* Размер списка слов */
 static int cur_buf; /* Индекс текущего символа в буфере */
 static int cur_list; /* Индекс текущего слова в списке */
 
-/* Процедура овобождения памяти из-под списка lst */
-void clear_list()
+/* Вспомогательные функции необходимые при работе вершин L-графа*/
+static void null_list(); /* Инициализирует lst */
+static void term_list(); /* Завершает lst */
+static void null_buf(); /* Инициализирует buf */
+static void add_sym(); /* Добавляет символ c в buf */
+static void add_word(); /* Добавляет слово из buf в lst */
+static int sym_set(int c); /* Набор специальных символов */
+
+/* Вершина - функция, которую надо вызвать следующей */
+typedef void * (*vertex)();
+
+/* Описание вершин L-графа */
+static void * start(); /* Начало L-графа */
+static void * word(); /* Вершина для рапознования слова */
+static void * spec_sym(char cprev); /* Вершина для определения одного 
+                                       специального символа */
+static void * spec_sym2(); /* Вершина для определения двойных специальных 
+                              символов */
+static void * stop(); /* Вершина останова анализа */
+static int stop_flag = 0; /* Флаг остановки */
+
+
+/* Процедура построения списка lst */
+list build_list()
+{
+    vertex V = start;
+    c = get_char();
+    null_list();
+    while(!stop_flag)
+        V = V();
+    return lst; 
+}
+
+/* Процедура печати списка lst */
+void print_list(list lst_loc)
 {
     int i;
+    lst = lst_loc;
+    if(lst == NULL) return;
+    for(i = 0; i < size_list - 1; i++)
+    {
+        print_str(lst[i]);
+        print_str(" ");
+    }
+    print_str("\n");
+}
+
+/* Процедура овобождения памяти из-под списка lst */
+void clear_list(list lst_loc)
+{
+    int i;
+    lst = lst_loc;
     size_list = 0;
     cur_list = 0;
     if(lst == NULL) return;
@@ -34,6 +83,7 @@ static void null_list()
     cur_list = 0;
     lst = NULL;
 }
+
 /* Завершает создание списка слов lst */
 static void term_list()
 {
@@ -52,6 +102,7 @@ static void term_list()
     if(lst == NULL)
         perr(strerror(errno));
 }
+
 /* Инициализация буфера buf текущего слова и подготовка к его заполнению */
 static void null_buf()
 {
@@ -59,6 +110,7 @@ static void null_buf()
     size_buf = 0;
     cur_buf = 0;
 }
+
 /* Процедура добавления символа в буфер текущего слова buf */
 static void add_sym()
 {
@@ -71,6 +123,7 @@ static void add_sym()
     }
     buf[cur_buf++] = c;
 }
+
 /* Процедура добавления слова из buf в список слов lst */
 static void add_word()
 {
@@ -93,18 +146,6 @@ static void add_word()
     lst[cur_list++] = buf;
 }
 
-/* Процедура печати списка lst */
-void print_list()
-{
-    int i;
-    if(lst == NULL) return;
-    for(i = 0; i < size_list - 1; i++)
-    {
-        print_str(lst[i]);
-        print_str(" ");
-    }
-    print_str("\n");
-}
 /* Функция проверки символа на специальный */
 static int sym_set(int c)
 {
@@ -121,30 +162,7 @@ static int sym_set(int c)
            c != '"' &&
            c != EOF ;
 }
-/* Построение списка */
 
-/* Вершина - функция, которую надо вызвать следующей */
-typedef void * (*vertex)();
-
-/* Описание вершин L-графа */
-static void * start(); /* Начало L-графа */
-static void * word(); /* Вершина для рапознования слова */
-static void * spec_sym(char cprev); /* Вершина для определения одного 
-                                       специального символа */
-static void * spec_sym2(); /* Вершина для определения двойных специальных 
-                              символов */
-static void * stop(); /* Вершина останова анализа */
-static int stop_flag = 0; /* Флаг остановки */
-
-/* Процедура построения списка lst */
-void build_list()
-{
-    vertex V = start;
-    c = get_char();
-    null_list();
-    while(!stop_flag)
-        V = V();
-}
 static void* start()
 {
     if(c == ' ' || c == '\t')
