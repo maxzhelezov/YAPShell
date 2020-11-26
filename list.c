@@ -43,6 +43,7 @@ list build_list()
     vertex V = start;
     c = get_char();
     null_list();
+    stop_flag = 0;
     while(!stop_flag)
         V = V();
     return lst; 
@@ -54,7 +55,7 @@ void print_list(list lst_loc)
     int i;
     lst = lst_loc;
     if(lst == NULL) return;
-    for(i = 0; i < size_list - 1; i++)
+    for(i = 0; lst[i] != NULL; i++)
     {
         print_str(lst[i]);
         print_str(" ");
