@@ -2,7 +2,7 @@ CC= gcc
 CFLAGS= -Wall -Wextra -pedantic -ansi -g
 
 BINARIES= task5.out
-SOURCES= list.c io.c
+SOURCES= list.c io.c tree.c
 
 OBJS=$(patsubst %.c, %.o, $(SOURCES))
 
