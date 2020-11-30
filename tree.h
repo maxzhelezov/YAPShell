@@ -21,8 +21,8 @@ struct cmd_inf {
 typedef struct cmd_inf *tree;
 typedef struct cmd_inf node;
 
-void print_tree(tree, int);
-tree build_tree(list);
-void clear_tree(tree);
+void print_tree(tree t, int shift);
+tree build_tree(list lst);
+void clear_tree(tree tr);
 
 #endif
