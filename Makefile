@@ -1,5 +1,5 @@
 CC= gcc
-CFLAGS= -Wall -Wextra -pedantic -ansi -g
+CFLAGS= -Wall -Wextra -ansi -g
 
 BINARIES= task5.out
 SOURCES= list.c io.c tree.c

@@ -5,12 +5,13 @@
 #define SIZE 16
 
 /* Общие переменные внутри модуля */
-static tree beg_cmd, cur_cmd, prev_cmd; /* Начальная команда, текущая и
-                                           предыдущая */
+static tree beg_cmd, cur_cmd, prev_cmd, back_cmd; /* Начальная команда, текущая,
+                                                     предыдущая и начало фоновых */
 static int end_flag; /* Флаг останова */
 static list lst; /* Список слов */
 static int cur_list; /* Текущая позиция в нем */
 static int argv_cur_size, argv_max_size; /* Текущие размеры argv в cur_cmd */
+static int parnts; /* Счетчик скобок */
 
 /* Тип - следующая вершина графа*/
 typedef void *(*vertex)();
@@ -26,25 +27,53 @@ static void * out();
 static void * backgrnd();
 static void * next(enum type_of_next nxt);
 static void * end();
-static void * error();
+static void * error(char *s); /* Ошибка построения дерева */
 
+static tree build_tree_recursive(); /* Рекурсивная функция построения дерева 
+                                       для вызова изнутри */
 static tree make_cmd(); /* Создает дерево из одного элемента с пустыми полями */
 static void make_bgrnd(tree t); /* Устанаваливает поле конвеера background = 1 
                                   во всех команда конвеера t */
 static char * add_argv(); /* Добавляет очередной элемент в массив argv текущей
                              команды, а также возвращает добавленный элемент */
 static void init(); /* Инициализация */
-static int check_spec(char* s); /* Проверяет является ли строка спец символом*/
+static int check_spec(char* s); /* Проверяет является ли строка спец символом 
+                                   кроме скобок */
+static int check_parnts(char* s); /* Проверяет является ли строка скобкой */
 static void term_argv(); /* Завершает запись в argv cur_cmd */
 
 tree build_tree(list lst_loc){
     vertex V = begin;
+    if (lst_loc == NULL) return NULL;
     init();
+    beg_cmd = cur_cmd = back_cmd = make_cmd();
     lst = lst_loc;
     while (!end_flag){
         V = V();
     }
+    if (parnts != 0)
+        error("Несоответсвие скобок");
     return beg_cmd;
+}
+
+static tree build_tree_recursive(){
+    /* Упрятывание значений в локальных переменных ради рекурсии */
+    tree old_beg, old_cur, old_prev, sub_tree, old_back;
+    int old_list = cur_list, old_end = end_flag;
+    int old_argv_cur = argv_cur_size, old_argv_max = argv_max_size;
+    vertex V = begin;
+    
+    old_beg = beg_cmd; old_cur = cur_cmd; old_prev = prev_cmd; old_back = back_cmd;
+    init();
+    cur_list = old_list;
+    beg_cmd = cur_cmd = back_cmd = make_cmd();
+    while (!end_flag)
+        V = V();
+    sub_tree = beg_cmd;
+    beg_cmd = old_beg; cur_cmd = old_cur; prev_cmd = old_prev; back_cmd = old_back;
+    argv_cur_size = old_argv_cur; argv_max_size = old_argv_max;
+    end_flag = old_end;
+    return sub_tree;
 }
 
 static void init(){
@@ -79,7 +108,6 @@ static void make_bgrnd(tree t){
     } 
 }
 
-
 static char * add_argv(){
     if (argv_cur_size > argv_max_size - 1)
         cur_cmd -> argv = realloc(cur_cmd -> argv,
@@ -93,7 +121,7 @@ static int check_spec(char *s){
     if (strlen(s) == 1)
         switch (s[0]){
             case '|': case '<': case '>': case '&': 
-            case ';': case '(': case ')': return 1;
+            case ';': return 1;
         }
     if (strlen(s) == 2)
         switch (s[0]){
@@ -104,23 +132,38 @@ static int check_spec(char *s){
     return 0;
 }
 
+static int check_parnts(char *s){
+    if (strlen(s) == 1)
+        if (s[0] == '(' || s[0] == ')')
+            return 1;
+    return 0;
+
+}
+
 static void term_argv(){
-    if (argv_cur_size < argv_max_size - 1)
+    if (cur_cmd -> argv == NULL) return;
+    if (argv_cur_size < argv_max_size - 1){
         cur_cmd -> argv = realloc(cur_cmd -> argv,
                 (++argv_cur_size)*sizeof(*(cur_cmd -> argv)));
-    cur_cmd -> argv[argv_cur_size - 1] = NULL;
+        cur_cmd -> argv[argv_cur_size - 1] = NULL;
+    }
     argv_cur_size = 0;
     argv_max_size = 0;
 }
 
 static void * begin(){
     char *s;
-    beg_cmd = cur_cmd = make_cmd();
-    s = add_argv();
-    if (!check_spec(s))
+    s = lst[cur_list];
+    if (check_parnts(s)){
+        cur_list++;
+        return subin;
+    }
+    if (!check_spec(s)){
+        add_argv();
         return conv;
+    }
     else
-        return error;
+        return error("Ожидался аргумент, а не управляющий символ");
 }
 
 static void * conv(){
@@ -128,7 +171,7 @@ static void * conv(){
     s = lst[cur_list];
     if (s == NULL)
         return end;
-    if (!check_spec(s))
+    if (!(check_spec(s) || check_parnts(s)))
     {
         add_argv();
         return conv;
@@ -150,72 +193,93 @@ static void * conv(){
             case '|': return s[1] == '|' ? (vertex)next(OR) : error;
             case '>': return s[1] == '>' ? (vertex)in(1) : error;
         }
-    return error;
+    return error("Произошло что-то странное");
 }
 
 static void * conv2(){
-    char *s;
-    term_argv();
-    prev_cmd = cur_cmd;
-    cur_cmd = make_cmd();
-    s = lst[cur_list];
+    char *s = lst[cur_list];
+    if (s == NULL) return error("Ожидалась команда после |");
     if (!check_spec(s)){
-        prev_cmd -> pipe = cur_cmd;
+        term_argv();
         prev_cmd = cur_cmd;
-        add_argv();
+        cur_cmd = make_cmd();
+        prev_cmd -> pipe = cur_cmd;
+        if (!check_parnts(s))
+            add_argv();
         return conv;
     }
-    return error;
+    return error("Ожидалась команда после |, а не спец символ");
 }
 
 static void * next(enum type_of_next nxt){
     char *s;
     term_argv();
-    s = lst[cur_list];   
+    s = lst[cur_list];
+    if (s == NULL) return error("Ожидалась команда после ||, && или ;");   
     if (!check_spec(s)){
         prev_cmd = cur_cmd;
         cur_cmd = make_cmd();
         prev_cmd -> next = cur_cmd;
         prev_cmd -> type = nxt;
-        add_argv();
+        if (nxt != NXT)
+            back_cmd = prev_cmd;
+        if (!check_parnts(s))
+            add_argv();
         return conv;
     }
-    return error;
+    return error("Ожидалась команда, а не спец символ после ||, && или ;");
 }
 
 static void * in(int apnd){
     char *s = lst[cur_list++];
+    if (s == NULL)
+        return error("Ожидался аргумент после <");
     if (!check_spec(s)){
         cur_cmd -> infile = s;
         cur_cmd -> append = apnd; 
         return conv;
     }
-    return error;
+    return error("Ожидался аргумент(файл), а не специальный символ");
 }
 
 static void * out(){
     char *s = lst[cur_list++];
+    if (s == NULL)
+        return error("Ожидался аргумент после >");
     if (!check_spec(s)){
         cur_cmd -> outfile = s;
         return conv;
     }
-    return error;
+    return error("Ожидался аргумент(файл), а не специальный символ");
 }
 
 static void * backgrnd(){
-    return conv;
+    make_bgrnd(back_cmd);
+    cur_cmd -> backgrnd = 1;
+    if (lst[cur_list] == NULL || !strcmp(lst[cur_list], ")"))
+        return end;
+    else
+        return next(NXT);
 }
 
 static void * subout(){
-    return conv;
+    if (parnts <= 0)
+        return error("Несоответсвие скобок");
+    parnts--;
+    return end;
 }
 
 static void * subin(){
+    parnts++;
+    back_cmd = cur_cmd;
+    cur_cmd -> psubcmd = build_tree_recursive();
     return conv;
 }
 
-static void * error(){
-    printf("Ошибка синтаксиса :(\n");
+static void * error(char *s){
+    printf("Ошибка синтаксиса : %s \n", s);
+    term_argv();
+    beg_cmd = NULL;
     end_flag = 1;
     return conv;
 }
