@@ -23,6 +23,8 @@ static void add_sym(); /* Добавляет символ c в buf */
 static void add_word(); /* Добавляет слово из buf в lst */
 static int sym_set(int c); /* Набор специальных символов */
 
+static char* subststr(char *inp); /* Подставляет в строку inp переменные окружения */
+
 /* Вершина - функция, которую надо вызвать следующей */
 typedef void * (*vertex)();
 
@@ -35,7 +37,7 @@ static void * spec_sym2(); /* Вершина для определения дв�
                               символов */
 static void * stop(); /* Вершина останова анализа */
 static int stop_flag = 0; /* Флаг остановки */
-
+static void * quotes(); /* Вершина для кавычек */
 
 /* Процедура построения списка lst */
 list build_list()
@@ -47,6 +49,50 @@ list build_list()
     while(!stop_flag)
         V = V();
     return lst; 
+}
+
+void subst(list lst){
+    int i;
+    char *temp;
+    for(i = 0; lst[i] != NULL; i++){
+        temp = subststr(lst[i]);
+        free(lst[i]);
+        lst[i] = temp;
+    }
+}
+
+static char * subststr(char *inp){
+    char *out, *tok, *temp;
+    char *envs[4], *names[4];
+    int i;
+    envs[0] = getenv("HOME");
+    envs[1] = getenv("SHELL");
+    envs[2] = getenv("USER");
+    envs[3] = getenv("EUID");
+
+    names[0] = "HOME";
+    names[1] = "SHELL";
+    names[2] = "USER";
+    names[3] = "EUID";
+        
+    tok = strtok(inp, "$");
+    out = malloc(1);
+    strcpy(out, "");
+
+    while (tok != NULL){
+        for(i = 0; i < 4; i++){
+            if (envs[i] == NULL) continue;
+            if (!strncmp(tok, names[i], strlen(names[i]))){
+                tok = tok + strlen(names[i]);
+				tok = strcat(envs[i], tok);
+            }
+        }
+        out = realloc(out, strlen(out) + strlen(tok) + 1);
+        out = strcat(out, tok);
+        tok = strtok(NULL, "$");
+    }
+    
+    return out;
 }
 
 /* Процедура печати списка lst */
@@ -161,20 +207,38 @@ static int sym_set(int c)
            c != ')' &&
            c != ';' &&
            c != '"' &&
+           c != '#' &&
            c != EOF ;
 }
 
 static void* start()
 {
+    if(c == '\\')
+    {
+        c = get_char();
+        if (c == '\\'){
+            null_buf();
+            add_sym();
+            c = get_char();
+            return word;
+        }
+        return start;
+    }
     if(c == ' ' || c == '\t')
     {
         c = get_char();
         return start;
     }
-    else if(c == EOF || c == '\n')
+    else if(c == EOF || c == '\n' || c == '#')
     {
         term_list();
         return stop;
+    }
+    else if(c == '"')
+    {
+        null_buf();
+        c = get_char();
+        return quotes;
     }
     else
     {
@@ -193,6 +257,8 @@ static void* word()
 {
     if(sym_set(c))
     {
+        if (c == '\\')
+            c = get_char();
         add_sym();
         c = get_char();
         return word;
@@ -202,6 +268,22 @@ static void* word()
         add_word();
         return start;
     }
+}
+
+static void* quotes()
+{
+    if(c == '"')
+    {
+        add_word();
+        c = get_char();
+        return start;
+    }
+    else
+    {
+        add_sym();
+        c = get_char();
+        return quotes;
+    }    
 }
 
 static void* spec_sym(char cprev)
