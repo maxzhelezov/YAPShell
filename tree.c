@@ -29,6 +29,7 @@ static void * next(enum type_of_next nxt);
 static void * end();
 static void * error(char *s); /* Ошибка построения дерева */
 
+/* Впомогательные функции для работы build_tree */
 static tree build_tree_recursive(); /* Рекурсивная функция построения дерева 
                                        для вызова изнутри */
 static tree make_cmd(); /* Создает дерево из одного элемента с пустыми полями */
@@ -41,6 +42,11 @@ static int check_spec(char* s); /* Проверяет является ли ст
                                    кроме скобок */
 static int check_parnts(char* s); /* Проверяет является ли строка скобкой */
 static void term_argv(); /* Завершает запись в argv cur_cmd */
+
+/* Вспомогательные функции для работы print_tree */
+static void make_shift(int n); /* Сдвигает вывод на n пробелов */
+static void print_argv(char **t, int shift); /* Печатает аргументы из списка t */
+
 
 tree build_tree(list lst_loc){
     vertex V = begin;
@@ -102,10 +108,17 @@ static tree make_cmd(){
 }
 
 static void make_bgrnd(tree t){
+    tree temp = t;
     while (t -> pipe != NULL){
         t -> backgrnd = 1;
         t = t -> pipe;  
-    } 
+    }
+    t = temp;
+    while (t -> next != NULL){
+        t -> backgrnd = 1;
+        t = t -> next;
+    }
+
 }
 
 static char * add_argv(){
@@ -155,6 +168,7 @@ static void * begin(){
     char *s;
     s = lst[cur_list];
     if (check_parnts(s)){
+        if (s[0] == ')') return error("Пустые скобки");
         cur_list++;
         return subin;
     }
@@ -184,8 +198,8 @@ static void * conv(){
             case '>': return out;
             case '&': return backgrnd;
             case ';': return next(NXT);
-            case '(': return subin();
-            case ')': return subout();
+            case '(': return subin;
+            case ')': return subout;
         }
     if (strlen(s) == 2)
         switch (s[0]){
@@ -221,8 +235,8 @@ static void * next(enum type_of_next nxt){
         cur_cmd = make_cmd();
         prev_cmd -> next = cur_cmd;
         prev_cmd -> type = nxt;
-        if (nxt != NXT)
-            back_cmd = prev_cmd;
+        if (nxt == NXT)
+            back_cmd = cur_cmd;
         if (!check_parnts(s))
             add_argv();
         return conv;
@@ -235,7 +249,8 @@ static void * in(int apnd){
     if (s == NULL)
         return error("Ожидался аргумент после <");
     if (!check_spec(s)){
-        cur_cmd -> infile = s;
+        cur_cmd -> infile = realloc(cur_cmd -> infile, strlen(s) + 1);
+        strcpy(cur_cmd -> infile, s);
         cur_cmd -> append = apnd; 
         return conv;
     }
@@ -247,7 +262,8 @@ static void * out(){
     if (s == NULL)
         return error("Ожидался аргумент после >");
     if (!check_spec(s)){
-        cur_cmd -> outfile = s;
+        cur_cmd -> infile = realloc(cur_cmd -> infile, strlen(s) + 1);
+        strcpy(cur_cmd -> infile, s);    
         return conv;
     }
     return error("Ожидался аргумент(файл), а не специальный символ");
@@ -256,8 +272,12 @@ static void * out(){
 static void * backgrnd(){
     make_bgrnd(back_cmd);
     cur_cmd -> backgrnd = 1;
-    if (lst[cur_list] == NULL || !strcmp(lst[cur_list], ")"))
+    if (lst[cur_list] == NULL)
         return end;
+    if (!strcmp(lst[cur_list], ")")){
+        cur_list++;
+        return subout;
+    }
     else
         return next(NXT);
 }
@@ -277,14 +297,16 @@ static void * subin(){
 }
 
 static void * error(char *s){
-    printf("Ошибка синтаксиса : %s \n", s);
+    fprintf(stderr, "Ошибка синтаксиса : %s \n", s);
     term_argv();
+    clear_tree(beg_cmd);
     beg_cmd = NULL;
     end_flag = 1;
     return conv;
 }
 
 static void * end(){
+    term_argv();
     end_flag = 1;
     return end;
 }
@@ -306,6 +328,7 @@ static void print_argv(char **p, int shift){
 }
 
 void print_tree(tree t, int shift){
+    
     char **p;
     if(t==NULL)
         return;
@@ -355,3 +378,21 @@ void print_tree(tree t, int shift){
     }
 }
  
+void clear_tree(tree t){
+    int i = 0;
+    if (t == NULL) return;
+    if (t -> psubcmd != NULL)
+        clear_tree(t -> psubcmd);
+    if (t -> next != NULL)
+        clear_tree(t -> next);
+    if (t -> pipe != NULL)
+        clear_tree(t -> pipe);
+    if (t -> argv != NULL){
+        for(i = 0; t -> argv[i] != NULL; i++)
+                free(t -> argv[i]);
+        free(t -> argv);
+    }
+    free(t -> infile);
+    free(t -> outfile);
+    free(t);
+}

@@ -7,8 +7,9 @@ int main() {
     lst = build_list();
     print_list(lst);
     t = build_tree(lst);
-    print_tree(t, 5);
+    print_tree(t, 0);
     clear_list(lst);
+    clear_tree(t);
     return 0;
 }
 
