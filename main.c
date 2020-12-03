@@ -1,7 +1,8 @@
 #include "list.h"
-#include "tree.h" 
+#include "tree.h"
 
-int main() {
+int main()
+{
     list lst;
     tree t;
     lst = build_list();

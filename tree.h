@@ -2,12 +2,14 @@
 #define TREE_HEADER
 #include "list.h"
 
-enum type_of_next{
+enum type_of_next
+{
     NXT, AND, OR   /* Виды связей соседних команд в списке команд */
 };
 
-struct cmd_inf {
-    char ** argv; /* Список из имени команды и аргументов */ 
+struct cmd_inf
+{
+    char ** argv; /* Список из имени команды и аргументов */
     char *infile; /* Переназначенный файл стандартного ввода */
     char *outfile; /* Переназначенный файл стандартного вывода */
     int append; /* Флаг нужно ли открывать файл вывода в режиме append */

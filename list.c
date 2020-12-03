@@ -31,9 +31,9 @@ typedef void * (*vertex)();
 /* Описание вершин L-графа */
 static void * start(); /* Начало L-графа */
 static void * word(); /* Вершина для рапознования слова */
-static void * spec_sym(char cprev); /* Вершина для определения одного 
+static void * spec_sym(char cprev); /* Вершина для определения одного
                                        специального символа */
-static void * spec_sym2(); /* Вершина для определения двойных специальных 
+static void * spec_sym2(); /* Вершина для определения двойных специальных
                               символов */
 static void * stop(); /* Вершина останова анализа */
 static int stop_flag = 0; /* Флаг остановки */
@@ -48,20 +48,23 @@ list build_list()
     stop_flag = 0;
     while(!stop_flag)
         V = V();
-    return lst; 
+    return lst;
 }
 
-void subst(list lst){
+void subst(list lst)
+{
     int i;
     char *temp;
-    for(i = 0; lst[i] != NULL; i++){
+    for(i = 0; lst[i] != NULL; i++)
+    {
         temp = subststr(lst[i]);
         free(lst[i]);
         lst[i] = temp;
     }
 }
 
-static char * subststr(char *inp){
+static char * subststr(char *inp)
+{
     char *out, *tok, *temp;
     char *envs[4], *names[4];
     int i;
@@ -74,24 +77,27 @@ static char * subststr(char *inp){
     names[1] = "SHELL";
     names[2] = "USER";
     names[3] = "EUID";
-        
+
     tok = strtok(inp, "$");
     out = malloc(1);
     strcpy(out, "");
 
-    while (tok != NULL){
-        for(i = 0; i < 4; i++){
+    while (tok != NULL)
+    {
+        for(i = 0; i < 4; i++)
+        {
             if (envs[i] == NULL) continue;
-            if (!strncmp(tok, names[i], strlen(names[i]))){
+            if (!strncmp(tok, names[i], strlen(names[i])))
+            {
                 tok = tok + strlen(names[i]);
-				tok = strcat(envs[i], tok);
+                tok = strcat(envs[i], tok);
             }
         }
         out = realloc(out, strlen(out) + strlen(tok) + 1);
         out = strcat(out, tok);
         tok = strtok(NULL, "$");
     }
-    
+
     return out;
 }
 
@@ -216,7 +222,8 @@ static void* start()
     if(c == '\\')
     {
         c = get_char();
-        if (c == '\\'){
+        if (c == '\\')
+        {
             null_buf();
             add_sym();
             c = get_char();
@@ -283,7 +290,7 @@ static void* quotes()
         add_sym();
         c = get_char();
         return quotes;
-    }    
+    }
 }
 
 static void* spec_sym(char cprev)
