@@ -47,17 +47,29 @@ void print_str(char *s)
         write(1, buf, cur_buf);
 }
 
-void perr(char *s)
+void sperr(char *s)
 {
     write(2, s, strlen(s));
-    write(2, "\n", 1);
+}
+
+void sperr2n(char *s1, char *s2)
+{
+    sperr(s1);
+    sperr(s2);
+    sperr("\n");
+}
+
+void perr(char *s)
+{
+    sperr(s);
+    sperr("\n");
     exit(1);
 }
 
-void print_int(int a)
+char * itos(int a)
 {
     int i = 0, n, b = 0;
-    char s[20];/* Числа большими по длине быть не могут */
+    static char s[20];/* Числа не могут быть больше из-за размера long long */
     /* На случай 0 элементов */
     if(a == 0)
         i = 1;
@@ -71,5 +83,5 @@ void print_int(int a)
     for(i = 0; i < n; b /= 10, i++)
         s[i] = b % 10 + '0';
     s[i] = '\0';
-    print_str(s);
+    return s;
 }

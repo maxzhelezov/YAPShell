@@ -12,9 +12,15 @@ void fill_buf();
 /* Печатает строку */
 void print_str(char *s);
 
+/* Печатает ошибку (soft) */
+void sperr(char *s);
+
+/* Печатает две строки и перевод строки на поток ошибок */
+void sperr2n(char *s1, char *s2);
+
 /* Печатает ошибку и умирает */
 void perr(char *s);
 
-/* Печатает число */
-void print_int(int a);
+/* Возвращает число строкой */
+char * itos(int a);
 #endif

@@ -84,6 +84,9 @@ static char * subststr(char *inp)
 
     tok = strtok(inp, "$");
     out = malloc(1);
+    errno = 0;
+    if (out == NULL)
+        perr(strerror(errno));
     strcpy(out, "");
 
     while (tok != NULL)
@@ -101,7 +104,6 @@ static char * subststr(char *inp)
         out = strcat(out, tok);
         tok = strtok(NULL, "$");
     }
-
     return out;
 }
 
@@ -184,9 +186,13 @@ static void add_sym()
 /* Процедура добавления слова из buf в список слов lst */
 static void add_word()
 {
-    if(cur_buf > size_buf - 1)
-        buf = realloc(buf, size_buf += 1); /* Для записи ’\0’ увеличиваем буфер
-                                              при необходимости */
+    if(cur_buf > size_buf - 1){
+        errno = 0;
+        buf = realloc(buf, size_buf += 1); /* Для записи ’\0’ увеличиваем буфер                                              при необходимости */
+        if (buf == NULL)
+            perr(strerror(errno));
+
+    }    
     buf[cur_buf++] = '\0';
     /* Выравниваем используемую память точно по размеру слова */
     errno = 0;

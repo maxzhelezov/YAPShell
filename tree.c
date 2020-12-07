@@ -1,6 +1,7 @@
 #include "tree.h"
+#include "io.h"
+#include <errno.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #define SIZE 16
 
@@ -113,7 +114,10 @@ static void init()
 static tree make_cmd()
 {
     tree temp;
+    errno = 0;
     temp = malloc(sizeof(node));
+    if (temp == NULL)
+        perr(strerror(errno));
     temp -> argv = NULL;
     temp -> infile = NULL;
     temp -> outfile = NULL;
@@ -138,10 +142,17 @@ static void make_bgrnd(tree t)
 
 static char * add_argv()
 {
-    if (argv_cur_size > argv_max_size - 1)
+    if (argv_cur_size > argv_max_size - 1){
+        errno = 0;
         cur_cmd -> argv = realloc(cur_cmd -> argv,
                                   (argv_max_size += SIZE)*sizeof(*(cur_cmd -> argv)));
+        if (cur_cmd -> argv == NULL)
+            perr(strerror(errno));
+    } 
+    errno = 0;   
     cur_cmd -> argv[argv_cur_size] = malloc(strlen(lst[cur_list]) + 1);
+    if (cur_cmd -> argv[argv_cur_size] == NULL)
+        perr(strerror(errno));
     strcpy(cur_cmd -> argv[argv_cur_size++], lst[cur_list++]);
     return lst[cur_list - 1];
 }
@@ -185,8 +196,11 @@ static void term_argv()
     if (cur_cmd -> argv == NULL) return;
     if (argv_cur_size < argv_max_size - 1)
     {
+        errno = 0;
         cur_cmd -> argv = realloc(cur_cmd -> argv,
                                   (++argv_cur_size)*sizeof(*(cur_cmd -> argv)));
+        if (cur_cmd -> argv == NULL)
+            perr(strerror(errno));
         cur_cmd -> argv[argv_cur_size - 1] = NULL;
     }
     argv_cur_size = 0;
@@ -308,7 +322,10 @@ static void * in()
         return error("Ожидался аргумент после <");
     if (!check_spec(s))
     {
+        errno = 0;
         cur_cmd -> infile = realloc(cur_cmd -> infile, strlen(s) + 1);
+        if (cur_cmd -> infile == NULL)
+            perr(strerror(errno));
         strcpy(cur_cmd -> infile, s);
         return conv;
     }
@@ -322,7 +339,10 @@ static void * out(int apnd)
         return error("Ожидался аргумент после > или >>");
     if (!check_spec(s))
     {
+        errno = 0;
         cur_cmd -> outfile = realloc(cur_cmd -> outfile, strlen(s) + 1);
+        if (cur_cmd -> outfile == NULL)
+            perr(strerror(errno));
         strcpy(cur_cmd -> outfile, s);
         cur_cmd -> append = apnd;
         return conv;
@@ -358,14 +378,13 @@ static void * subout()
 static void * subin()
 {
     parnts++;
-    /*conv_cmd = cur_cmd;*/
     cur_cmd -> psubcmd = build_tree_recursive();
     return conv;
 }
 
 static void * error(char *s)
 {
-    fprintf(stderr, "Ошибка синтаксиса : %s \n", s);
+    sperr2n("Ошибка синтаксиса : ", s);
     term_argv();
     clear_tree(beg_cmd);
     beg_cmd = NULL;
@@ -383,7 +402,7 @@ static void * end()
 static void make_shift(int n)
 {
     while(n--)
-        putc(' ', stderr);
+        sperr(" ");
 }
 
 static void print_argv(char **p, int shift)
@@ -394,7 +413,13 @@ static void print_argv(char **p, int shift)
         while(*p!=NULL)
         {
             make_shift(shift);
+            /*
             fprintf(stderr, "argv[%d]=%s\n",(int) (p-q), *p);
+            Строки ниже эквивалентне команде выше
+            */
+            sperr("argv[");
+            sperr(itos((int)(p-q)));
+            sperr2n("]=", *p);
             p++;
         }
     }
@@ -412,46 +437,46 @@ void print_tree(tree t, int shift)
     else
     {
         make_shift(shift);
-        fprintf(stderr, "psubshell\n");
+        sperr("psubshell\n");
     }
     make_shift(shift);
     if(t->infile==NULL)
-        fprintf(stderr, "infile=NULL\n");
+        sperr("infile=NULL\n");
     else
-        fprintf(stderr, "infile=%s\n", t->infile);
+        sperr2n("infile=",t -> infile);
     make_shift(shift);
     if(t->outfile==NULL)
-        fprintf(stderr, "outfile=NULL\n");
+        sperr("outfile=NULL\n");
     else
-        fprintf(stderr, "outfile=%s\n", t->outfile);
+        sperr2n("outfile=",t -> outfile);
     make_shift(shift);
-    fprintf(stderr, "append=%d\n", t->append);
+    sperr2n("append=", itos(t->append));
     make_shift(shift);
-    fprintf(stderr, "background=%d\n", t->backgrnd);
+    sperr2n("background=", itos(t->backgrnd));
     make_shift(shift);
-    fprintf(stderr, "type=%s\n", t->type==NXT?"NXT": t->type==OR?"OR": "AND" );
+    sperr2n("type=", t->type==NXT?"NXT": t->type==OR?"OR": "AND" );
     make_shift(shift);
     if(t->psubcmd==NULL)
-        fprintf(stderr, "psubcmd=NULL \n");
+        sperr("psubcmd=NULL \n");
     else
     {
-        fprintf(stderr, "psubcmd---> \n");
+        sperr("psubcmd---> \n");
         print_tree(t->psubcmd, shift+5);
     }
     make_shift(shift);
     if(t->pipe==NULL)
-        fprintf(stderr, "pipe=NULL \n");
+        sperr("pipe=NULL \n");
     else
     {
-        fprintf(stderr, "pipe---> \n");
+        sperr("pipe---> \n");
         print_tree(t->pipe, shift+5);
     }
     make_shift(shift);
     if(t->next==NULL)
-        fprintf(stderr, "next=NULL \n");
+        sperr("next=NULL \n");
     else
     {
-        fprintf(stderr, "next---> \n");
+        sperr("next---> \n");
         print_tree(t->next, shift+5);
     }
 }
