@@ -194,7 +194,7 @@ static int check_parnts(char *s)
 static void term_argv()
 {
     if (cur_cmd -> argv == NULL) return;
-    if (argv_cur_size < argv_max_size - 1)
+    if (argv_cur_size != argv_max_size - 1)
     {
         errno = 0;
         cur_cmd -> argv = realloc(cur_cmd -> argv,
@@ -203,6 +203,7 @@ static void term_argv()
             perr(strerror(errno));
         cur_cmd -> argv[argv_cur_size - 1] = NULL;
     }
+    cur_cmd -> argv[argv_cur_size] = NULL;
     argv_cur_size = 0;
     argv_max_size = 0;
 }
