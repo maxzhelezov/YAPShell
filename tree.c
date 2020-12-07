@@ -5,8 +5,12 @@
 #define SIZE 16
 
 /* Общие переменные внутри модуля */
-static tree beg_cmd, cur_cmd, prev_cmd, back_cmd; /* Начальная команда, текущая,
-                                                     предыдущая и начало фоновых */
+static tree beg_cmd, /* Начало дерева */ 
+            cur_cmd, /* Текущая команда дерева */
+            prev_cmd, /* Предыдущая команда дерева */
+            conv_cmd, /* Начало текущего конвеера */
+            log_cmd; /* Начало текущей цепочки логических команд */
+
 static int end_flag; /* Флаг останова */
 static list lst; /* Список слов */
 static int cur_list; /* Текущая позиция в нем */
@@ -22,8 +26,8 @@ static void * conv();
 static void * conv2();
 static void * subin();
 static void * subout();
-static void * in(int apnd);
-static void * out();
+static void * in();
+static void * out(int apnd);
 static void * backgrnd();
 static void * next(enum type_of_next nxt);
 static void * end();
@@ -53,7 +57,7 @@ tree build_tree(list lst_loc)
     vertex V = begin;
     if (lst_loc == NULL) return NULL;
     init();
-    beg_cmd = cur_cmd = back_cmd = make_cmd();
+    beg_cmd = cur_cmd = conv_cmd = make_cmd();
     lst = lst_loc;
     while (!end_flag)
     {
@@ -67,7 +71,7 @@ tree build_tree(list lst_loc)
 static tree build_tree_recursive()
 {
     /* Упрятывание значений в локальных переменных ради рекурсии */
-    tree old_beg, old_cur, old_prev, sub_tree, old_back;
+    tree old_beg, old_cur, old_prev, sub_tree, old_back, old_log;
     int old_list = cur_list, old_end = end_flag;
     int old_argv_cur = argv_cur_size, old_argv_max = argv_max_size;
     vertex V = begin;
@@ -75,17 +79,19 @@ static tree build_tree_recursive()
     old_beg = beg_cmd;
     old_cur = cur_cmd;
     old_prev = prev_cmd;
-    old_back = back_cmd;
+    old_back = conv_cmd;
+    old_log = log_cmd;
     init();
     cur_list = old_list;
-    beg_cmd = cur_cmd = back_cmd = make_cmd();
+    beg_cmd = cur_cmd = conv_cmd = make_cmd();
     while (!end_flag)
         V = V();
     sub_tree = beg_cmd;
     beg_cmd = old_beg;
     cur_cmd = old_cur;
     prev_cmd = old_prev;
-    back_cmd = old_back;
+    conv_cmd = old_back;
+    log_cmd = old_log;
     argv_cur_size = old_argv_cur;
     argv_max_size = old_argv_max;
     end_flag = old_end;
@@ -97,6 +103,7 @@ static void init()
     beg_cmd = NULL;
     cur_cmd = NULL;
     prev_cmd = NULL;
+    log_cmd = NULL;
     end_flag = 0;
     cur_list = 0;
     argv_cur_size = 0;
@@ -121,18 +128,11 @@ static tree make_cmd()
 
 static void make_bgrnd(tree t)
 {
-    tree temp = t;
-    while (t -> pipe != NULL)
-    {
-        t -> backgrnd = 1;
-        t = t -> pipe;
-    }
-    t = temp;
-    while (t -> next != NULL)
-    {
-        t -> backgrnd = 1;
-        t = t -> next;
-    }
+    t -> backgrnd = 1;
+    if  (t -> pipe != NULL)
+        make_bgrnd(t -> pipe);
+    if (t -> next != NULL)
+        make_bgrnd(t -> next);
 
 }
 
@@ -197,6 +197,7 @@ static void * begin()
 {
     char *s;
     s = lst[cur_list];
+    conv_cmd = cur_cmd;
     if (check_parnts(s))
     {
         if (s[0] == ')') return error("Пустые скобки");
@@ -230,9 +231,9 @@ static void * conv()
         case '|':
             return conv2;
         case '<':
-            return in(0);
+            return in;
         case '>':
-            return out;
+            return out(0);
         case '&':
             return backgrnd;
         case ';':
@@ -250,7 +251,7 @@ static void * conv()
         case '|':
             return s[1] == '|' ? (vertex)next(OR) : error;
         case '>':
-            return s[1] == '>' ? (vertex)in(1) : error;
+            return s[1] == '>' ? (vertex)out(1) : error;
         }
     return error("Произошло что-то странное");
 }
@@ -282,18 +283,25 @@ static void * next(enum type_of_next nxt)
     {
         prev_cmd = cur_cmd;
         cur_cmd = make_cmd();
-        prev_cmd -> next = cur_cmd;
-        prev_cmd -> type = nxt;
-        if (nxt == NXT)
-            back_cmd = cur_cmd;
+        conv_cmd -> next = cur_cmd;
+        conv_cmd -> type = nxt;
+        
+        if (nxt == NXT && log_cmd != NULL)
+            log_cmd = NULL;
+
+        if (nxt != NXT && log_cmd == NULL){
+            log_cmd = conv_cmd;
+        }
+        /*
         if (!check_parnts(s))
             add_argv();
-        return conv;
+        */
+        return begin;
     }
     return error("Ожидалась команда, а не спец символ после ||, && или ;");
 }
 
-static void * in(int apnd)
+static void * in()
 {
     char *s = lst[cur_list++];
     if (s == NULL)
@@ -302,21 +310,21 @@ static void * in(int apnd)
     {
         cur_cmd -> infile = realloc(cur_cmd -> infile, strlen(s) + 1);
         strcpy(cur_cmd -> infile, s);
-        cur_cmd -> append = apnd;
         return conv;
     }
     return error("Ожидался аргумент(файл), а не специальный символ");
 }
 
-static void * out()
+static void * out(int apnd)
 {
     char *s = lst[cur_list++];
     if (s == NULL)
-        return error("Ожидался аргумент после >");
+        return error("Ожидался аргумент после > или >>");
     if (!check_spec(s))
     {
-        cur_cmd -> infile = realloc(cur_cmd -> infile, strlen(s) + 1);
-        strcpy(cur_cmd -> infile, s);
+        cur_cmd -> outfile = realloc(cur_cmd -> outfile, strlen(s) + 1);
+        strcpy(cur_cmd -> outfile, s);
+        cur_cmd -> append = apnd;
         return conv;
     }
     return error("Ожидался аргумент(файл), а не специальный символ");
@@ -324,7 +332,9 @@ static void * out()
 
 static void * backgrnd()
 {
-    make_bgrnd(back_cmd);
+    make_bgrnd(conv_cmd);
+    if (log_cmd != NULL)
+        make_bgrnd(log_cmd);
     cur_cmd -> backgrnd = 1;
     if (lst[cur_list] == NULL)
         return end;
@@ -348,7 +358,7 @@ static void * subout()
 static void * subin()
 {
     parnts++;
-    back_cmd = cur_cmd;
+    /*conv_cmd = cur_cmd;*/
     cur_cmd -> psubcmd = build_tree_recursive();
     return conv;
 }

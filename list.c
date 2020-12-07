@@ -14,6 +14,7 @@ static int size_buf; /* Размер буфера текущего слова */
 static int size_list; /* Размер списка слов */
 static int cur_buf; /* Индекс текущего символа в буфере */
 static int cur_list; /* Индекс текущего слова в списке */
+static int eof_flag; /* Признак конца файла */
 
 /* Вспомогательные функции необходимые при работе вершин L-графа*/
 static void null_list(); /* Инициализирует lst */
@@ -40,21 +41,24 @@ static int stop_flag = 0; /* Флаг остановки */
 static void * quotes(); /* Вершина для кавычек */
 
 /* Процедура построения списка lst */
-list build_list()
+int build_list(list *lst_loc)
 {
     vertex V = start;
     c = get_char();
     null_list();
     stop_flag = 0;
+    eof_flag = 0;
     while(!stop_flag)
         V = V();
-    return lst;
+    *lst_loc = lst;
+    return eof_flag;
 }
 
 void subst(list lst)
 {
     int i;
     char *temp;
+    if (lst == NULL) return;
     for(i = 0; lst[i] != NULL; i++)
     {
         temp = subststr(lst[i]);
@@ -65,7 +69,7 @@ void subst(list lst)
 
 static char * subststr(char *inp)
 {
-    char *out, *tok, *temp;
+    char *out, *tok;
     char *envs[4], *names[4];
     int i;
     envs[0] = getenv("HOME");
@@ -238,6 +242,8 @@ static void* start()
     }
     else if(c == EOF || c == '\n' || c == '#')
     {
+        if (c == EOF)
+            eof_flag = 1;
         term_list();
         return stop;
     }
