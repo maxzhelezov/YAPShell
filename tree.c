@@ -6,11 +6,11 @@
 #define SIZE 16
 
 /* Общие переменные внутри модуля */
-static tree beg_cmd, /* Начало дерева */ 
-            cur_cmd, /* Текущая команда дерева */
-            prev_cmd, /* Предыдущая команда дерева */
-            conv_cmd, /* Начало текущего конвеера */
-            log_cmd; /* Начало текущей цепочки логических команд */
+static tree beg_cmd, /* Начало дерева */
+       cur_cmd, /* Текущая команда дерева */
+       prev_cmd, /* Предыдущая команда дерева */
+       conv_cmd, /* Начало текущего конвеера */
+       log_cmd; /* Начало текущей цепочки логических команд */
 
 static int end_flag; /* Флаг останова */
 static list lst; /* Список слов */
@@ -142,14 +142,15 @@ static void make_bgrnd(tree t)
 
 static char * add_argv()
 {
-    if (argv_cur_size > argv_max_size - 1){
+    if (argv_cur_size > argv_max_size - 1)
+    {
         errno = 0;
         cur_cmd -> argv = realloc(cur_cmd -> argv,
                                   (argv_max_size += SIZE)*sizeof(*(cur_cmd -> argv)));
         if (cur_cmd -> argv == NULL)
             perr(strerror(errno));
-    } 
-    errno = 0;   
+    }
+    errno = 0;
     cur_cmd -> argv[argv_cur_size] = malloc(strlen(lst[cur_list]) + 1);
     if (cur_cmd -> argv[argv_cur_size] == NULL)
         perr(strerror(errno));
@@ -300,17 +301,14 @@ static void * next(enum type_of_next nxt)
         cur_cmd = make_cmd();
         conv_cmd -> next = cur_cmd;
         conv_cmd -> type = nxt;
-        
+
         if (nxt == NXT && log_cmd != NULL)
             log_cmd = NULL;
 
-        if (nxt != NXT && log_cmd == NULL){
+        if (nxt != NXT && log_cmd == NULL)
+        {
             log_cmd = conv_cmd;
         }
-        /*
-        if (!check_parnts(s))
-            add_argv();
-        */
         return begin;
     }
     return error("Ожидалась команда, а не спец символ после ||, && или ;");

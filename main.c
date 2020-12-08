@@ -8,7 +8,8 @@ int main()
     list lst;
     tree t;
     print_str(">>> ");
-    while(!build_list(&lst)){
+    while(!build_list(&lst))
+    {
         subst(lst);
         print_list(lst);
         t = build_tree(lst);
