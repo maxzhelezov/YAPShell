@@ -137,7 +137,6 @@ static void make_bgrnd(tree t)
         make_bgrnd(t -> pipe);
     if (t -> next != NULL)
         make_bgrnd(t -> next);
-
 }
 
 static char * add_argv()
@@ -199,10 +198,9 @@ static void term_argv()
     {
         errno = 0;
         cur_cmd -> argv = realloc(cur_cmd -> argv,
-                                  (++argv_cur_size)*sizeof(*(cur_cmd -> argv)));
+                                  (argv_cur_size + 1)*sizeof(*(cur_cmd -> argv)));
         if (cur_cmd -> argv == NULL)
             perr(strerror(errno));
-        cur_cmd -> argv[argv_cur_size - 1] = NULL;
     }
     cur_cmd -> argv[argv_cur_size] = NULL;
     argv_cur_size = 0;

@@ -1,7 +1,10 @@
 #include "list.h"
 #include "tree.h"
-#include <stdlib.h>
+#include "exec.h"
 #include "io.h"
+
+/* Отладка */
+#define DEBUG 1
 
 int main()
 {
@@ -11,10 +14,14 @@ int main()
     while(!build_list(&lst))
     {
         subst(lst);
-        print_list(lst);
+        if (DEBUG)
+            print_list(lst);
         t = build_tree(lst);
         clear_list(lst);
-        print_tree(t, 0);
+        if (DEBUG) 
+            print_tree(t, 0);
+        execute(t);
+        clear_zombies();
         clear_tree(t);
         print_str(">>> ");
     }
