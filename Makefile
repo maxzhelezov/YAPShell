@@ -22,6 +22,9 @@ exec.c: exec.h
 run:
 	rlwrap ./$(BINARIES)
 
+leak:
+	valgrind --leak-check=full --show-leak-kinds=all ./$(BINARIES)
+
 clean:
 	rm -f *.o
 
