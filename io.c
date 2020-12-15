@@ -47,6 +47,12 @@ void print_str(char *s)
         write(1, buf, cur_buf);
 }
 
+void print_strln(char *s)
+{
+    print_str(s);
+    print_str("\n");
+}
+
 void sperr(char *s)
 {
     write(2, s, strlen(s));

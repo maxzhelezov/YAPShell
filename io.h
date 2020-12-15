@@ -12,6 +12,9 @@ void fill_buf();
 /* Печатает строку */
 void print_str(char *s);
 
+/* Печатает строку и переводит строку */
+void print_strln(char *s);
+
 /* Печатает ошибку (soft) */
 void sperr(char *s);
 
