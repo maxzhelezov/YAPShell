@@ -15,19 +15,19 @@
 #define WROPEN O_WRONLY|O_TRUNC|O_CREAT /* Флаги для открытия файла как > */
 #define APPOPEN O_WRONLY|O_CREAT|O_APPEND /* Флаги для открытия файла как >> */
 #define PIDBUF 8 /* Размер буфера из PID */
-   
+
 /* Обработка pipe, перемещает t на конец конвеера, возвращает статус завершения */
 static int exec_pipe(tree *tr, tree orig, pid_table * pt);
- /* Функция для рекурсивного выполенения сабшелла, дерево orig нужна для 
-  * очистки памяти, pt таблица процесов для background  */
+/* Функция для рекурсивного выполенения сабшелла, дерево orig нужна для
+ * очистки памяти, pt таблица процесов для background  */
 static int exec_rec(tree t, tree orig, pid_table * pt);
 /* выполняет одну команду */
 static int exec_cmd(tree *tr, tree orig, pid_table * pt);
 /* Перенапрявляет вход и выход для узла дерева */
 static void conf_io(tree t);
 /* Выполенение одной команды или сабшелла, для использования в новом процессе */
-static void exec_unit(tree t, tree orig, pid_table * pt); 
-/* Перенаправление стандартного ввода и вывода, если in = 0, то ничего не 
+static void exec_unit(tree t, tree orig, pid_table * pt);
+/* Перенаправление стандартного ввода и вывода, если in = 0, то ничего не
  * перенаправляется, анлогично для out */
 static void redir(int in, int out);
 /* Получить статус выполнения процесса */
@@ -50,7 +50,8 @@ void execute(tree t, pid_table * pt)
     exec_rec(t, t, pt);
 }
 
-pid_table * init_back(){
+pid_table * init_back()
+{
     pid_table *pt;
     errno = 0;
     pt = malloc(sizeof(pid_table));
@@ -65,10 +66,12 @@ int check_back(pid_table *pt)
     int i, flag = 1, pid;
     if (pt -> pids == NULL) return 1;
     for(i = 0; i < pt -> max_size; i++)
-        if(pt -> pids[i] != 0){
+        if(pt -> pids[i] != 0)
+        {
             flag = 0;
             errno = 0;
-            if((pid = waitpid(pt->pids[i], NULL, WNOHANG)) != 0){
+            if((pid = waitpid(pt->pids[i], NULL, WNOHANG)) != 0)
+            {
                 sperr(itos(i));
                 sperr(" - Процесс ");
                 sperr2n(itos(pt->pids[i]), " завершился");
@@ -78,7 +81,8 @@ int check_back(pid_table *pt)
             if (pid == -1)
                 perr(strerror(errno));
         }
-    if(flag && pt -> pids != NULL){
+    if(flag && pt -> pids != NULL)
+    {
         clean(pt);
         init(pt);
         return 1;
@@ -86,7 +90,8 @@ int check_back(pid_table *pt)
     return 0;
 }
 
-void clean_back(pid_table *pt){
+void clean_back(pid_table *pt)
+{
     int i;
     for(i = 0; i < pt -> max_size; i++)
         if(pt -> pids[i] != 0)
@@ -95,59 +100,73 @@ void clean_back(pid_table *pt){
     free(pt);
 }
 
-static int exec_rec(tree t, tree orig, pid_table * pt){
+static int exec_rec(tree t, tree orig, pid_table * pt)
+{
     int status, pid;
-    while (t != NULL){
-        
+    while (t != NULL)
+    {
 
-        if (t -> pipe != NULL){
+
+        if (t -> pipe != NULL)
+        {
             status = exec_pipe(&t, orig, pt);
         }
-        else if (t -> psubcmd != NULL){
+        else if (t -> psubcmd != NULL)
+        {
             errno = 0;
-            if ((pid = fork()) == 0){
+            if ((pid = fork()) == 0)
+            {
                 make_back(t -> psubcmd);
-                exec_unit(t, orig, pt);             
+                exec_unit(t, orig, pt);
             }
-            if (pid == -1){
+            if (pid == -1)
+            {
                 sperr2n(strerror(errno),"");
                 return -1;
             }
-            if(t -> backgrnd){
+            if(t -> backgrnd)
+            {
                 add_loud(pt, pid);
                 status = 0;
             }
-            else{
+            else
+            {
                 waitpid(pid, &status, 0);
                 status = get_status(status);
             }
         }
         else
             status = exec_cmd(&t, orig, pt);
-        
-        switch (t -> type){
-            case AND: if (status == 0)
-                          t = t -> next;
-                        else
-                            return status;
-                        break;
-            case OR: if(status != 0)
-                         t = t -> next;
-                    else
-                       return status;
-                    break; 
-            default: t = t -> next;
+
+        switch (t -> type)
+        {
+        case AND:
+            if (status == 0)
+                t = t -> next;
+            else
+                return status;
+            break;
+        case OR:
+            if(status != 0)
+                t = t -> next;
+            else
+                return status;
+            break;
+        default:
+            t = t -> next;
         }
         term(pt);
     }
     return status;
 }
 
-static void exec_unit(tree t, tree orig, pid_table * pt){
+static void exec_unit(tree t, tree orig, pid_table * pt)
+{
     int errno_saved;
     pid_table * pt_loc;
     signal(SIGINT, SIG_DFL);
-    if (t -> psubcmd == NULL) {
+    if (t -> psubcmd == NULL)
+    {
 
         errno = 0;
         if(execvp(t -> argv[0], t -> argv) == -1)
@@ -158,10 +177,11 @@ static void exec_unit(tree t, tree orig, pid_table * pt){
         clean_back(pt);
         perr(strerror(errno_saved));
     }
-    else{
+    else
+    {
         conf_io(t);
         clean_back(pt);
-        pt_loc = init_back(); 
+        pt_loc = init_back();
         exec_rec(t -> psubcmd, orig, pt_loc);
         while(check_back(pt_loc) == 0);
         clean_back(pt_loc);
@@ -170,13 +190,15 @@ static void exec_unit(tree t, tree orig, pid_table * pt){
     }
 }
 
-static int exec_pipe(tree *tr, tree orig, pid_table * pt_gl){
+static int exec_pipe(tree *tr, tree orig, pid_table * pt_gl)
+{
     tree t = *tr;
     int fd[2], in, out, next_in, i, pid, status, ret = 0;
     pid_table pt;
 
     errno = 0;
-    if(pipe(fd) == -1){
+    if(pipe(fd) == -1)
+    {
         sperr2n(strerror(errno),"");
         return -1;
     }
@@ -184,7 +206,8 @@ static int exec_pipe(tree *tr, tree orig, pid_table * pt_gl){
     next_in=fd[0];
     init(&pt);
 
-    if (t -> argv == NULL || strcmp(t -> argv[0], "cd") != 0){
+    if (t -> argv == NULL || strcmp(t -> argv[0], "cd") != 0)
+    {
         errno = 0;
         if ((pid = fork())==0)
         {
@@ -195,7 +218,8 @@ static int exec_pipe(tree *tr, tree orig, pid_table * pt_gl){
             conf_io(t);
             exec_unit(t, orig, pt_gl);
         }
-        if (pid == -1){
+        if (pid == -1)
+        {
             sperr2n(strerror(errno),"");
             return -1;
         }
@@ -203,18 +227,20 @@ static int exec_pipe(tree *tr, tree orig, pid_table * pt_gl){
         if(t -> backgrnd)
             add_loud(pt_gl, pid);
     }
-    in=next_in; 
-    while ((t = t -> pipe) -> pipe != NULL) 
+    in=next_in;
+    while ((t = t -> pipe) -> pipe != NULL)
     {
         close(out);
         errno = 0;
-        if(pipe(fd) == -1){
+        if(pipe(fd) == -1)
+        {
             sperr2n(strerror(errno),"");
             return -1;
         }
         out=fd[1];
         next_in=fd[0];
-        if (t -> argv == NULL || strcmp(t -> argv[0], "cd") != 0){
+        if (t -> argv == NULL || strcmp(t -> argv[0], "cd") != 0)
+        {
             errno = 0;
             if((pid = fork())==0)
             {
@@ -225,7 +251,8 @@ static int exec_pipe(tree *tr, tree orig, pid_table * pt_gl){
                 conf_io(t);
                 exec_unit(t, orig, pt_gl);
             }
-            if (pid == -1){
+            if (pid == -1)
+            {
                 sperr2n(strerror(errno),"");
                 return -1;
             }
@@ -237,7 +264,8 @@ static int exec_pipe(tree *tr, tree orig, pid_table * pt_gl){
         in=next_in;
     }
     close(out);
-    if (t -> argv == NULL || strcmp(t -> argv[0], "cd") != 0){
+    if (t -> argv == NULL || strcmp(t -> argv[0], "cd") != 0)
+    {
         errno = 0;
         if ((pid = fork())==0)
         {
@@ -247,7 +275,8 @@ static int exec_pipe(tree *tr, tree orig, pid_table * pt_gl){
             conf_io(t);
             exec_unit(t, orig, pt_gl);
         }
-        if (pid == -1){
+        if (pid == -1)
+        {
             sperr2n(strerror(errno),"");
             return -1;
         }
@@ -257,67 +286,80 @@ static int exec_pipe(tree *tr, tree orig, pid_table * pt_gl){
     }
     close(in);
     term(&pt);
-    if (t -> backgrnd == 1){
+    if (t -> backgrnd == 1)
+    {
         clean(pt_gl);
         return 0;
     }
     while (pt.size > 0)
         for(i = 0; i < pt.max_size; i++)
-            if (pt.pids[i] != 0){
+            if (pt.pids[i] != 0)
+            {
                 errno = 0;
                 if((pid = waitpid(pt.pids[i], &status, WNOHANG)) != 0)
                     if (get_status(status) != 0)
-                        ret = -1;                 
+                        ret = -1;
                 rem(&pt, pt.pids[i]);
-                if (pid == -1){
+                if (pid == -1)
+                {
                     sperr2n(strerror(errno),"");
                     return -1;
                 }
             }
-    clean(&pt);  
+    clean(&pt);
     return ret;
 }
 
-static int exec_cmd(tree *tr, tree orig, pid_table * pt){
+static int exec_cmd(tree *tr, tree orig, pid_table * pt)
+{
     tree t = *tr;
     int pid, status;
     if (make_cd(t, &status))
         return status;
     errno = 0;
-    if ((pid = fork()) == 0){
+    if ((pid = fork()) == 0)
+    {
         make_back(t);
         conf_io(t);
         /* Вообще говоря рекурсии не будет */
         exec_unit(t, orig, pt);
     }
-    if (pid == -1){
+    if (pid == -1)
+    {
         sperr2n(strerror(errno),"");
         return -1;
     }
-    if (t -> backgrnd){
+    if (t -> backgrnd)
+    {
         add_loud(pt, pid);
         return 0;
     }
     errno = 0;
-    if(waitpid(pid, &status, 0) == -1){
+    if(waitpid(pid, &status, 0) == -1)
+    {
         sperr2n(strerror(errno),"");
         return -1;
     }
     return get_status(status);
 }
 
-static void redir(int in, int out){
-    if (in != 0){
+static void redir(int in, int out)
+{
+    if (in != 0)
+    {
         errno = 0;
-        if(dup2(in,0) == -1){
+        if(dup2(in,0) == -1)
+        {
             perr(strerror(errno));
             return;
         }
         close(in);
     }
-    if (out != 0){
+    if (out != 0)
+    {
         errno = 0;
-        if(dup2(out,1) == -1){
+        if(dup2(out,1) == -1)
+        {
             perr(strerror(errno));
             return;
         }
@@ -325,7 +367,8 @@ static void redir(int in, int out){
     }
 }
 
-static int get_status(int status){
+static int get_status(int status)
+{
     int ret;
     if (WIFEXITED(status))
         ret = WEXITSTATUS(status);
@@ -334,22 +377,27 @@ static int get_status(int status){
     return ret;
 }
 
-static void conf_io(tree t){
+static void conf_io(tree t)
+{
     int fd;
-    if (t -> infile != NULL){
+    if (t -> infile != NULL)
+    {
         errno = 0;
         fd = open(t -> infile, O_RDONLY, 0);
-        if (fd == -1){
+        if (fd == -1)
+        {
             perr(strerror(errno));
             return;
         }
         redir(fd, 0);
     }
 
-    if (t -> outfile != NULL){
+    if (t -> outfile != NULL)
+    {
         errno = 0;
-        fd = open(t -> outfile, t->append ? APPOPEN : WROPEN , 0644);
-        if ( fd == -1){
+        fd = open(t -> outfile, t->append ? APPOPEN : WROPEN, 0644);
+        if ( fd == -1)
+        {
             perr(strerror(errno));
             return;
         }
@@ -357,17 +405,20 @@ static void conf_io(tree t){
     }
 }
 
-static void make_back(tree t){
+static void make_back(tree t)
+{
     if (t -> backgrnd == 0) return;
     errno = 0;
     int nullin = open("/dev/null", O_RDONLY, 0);
     int nullerr = open("/dev/null", O_WRONLY, 0);
-    if (nullin == -1 || nullerr == -1){
+    if (nullin == -1 || nullerr == -1)
+    {
         perr(strerror(errno));
         return;
     }
     errno = 0;
-    if (dup2(nullerr, 2) == -1){
+    if (dup2(nullerr, 2) == -1)
+    {
         perr(strerror(errno));
         return;
     }
@@ -376,15 +427,18 @@ static void make_back(tree t){
     redir(nullin, 0);
 }
 
-static int make_cd(tree t, int * status){
+static int make_cd(tree t, int * status)
+{
     char * path;
     *status = 0;
-    if (strcmp(t -> argv[0], "cd") == 0){
+    if (strcmp(t -> argv[0], "cd") == 0)
+    {
         errno = 0;
         path = t -> argv[1];
         if (t -> argv[1] == NULL)
             path = getenv("HOME");
-        if(chdir(path)== -1){
+        if(chdir(path)== -1)
+        {
             *status = 1;
             sperr2n(strerror(errno), "");
         }
@@ -393,40 +447,47 @@ static int make_cd(tree t, int * status){
     return 0;
 }
 
-static void add(pid_table *pt, int pid){
-    if (pt -> size > pt -> max_size - 1){
+static void add(pid_table *pt, int pid)
+{
+    if (pt -> size > pt -> max_size - 1)
+    {
         pt -> pids = realloc(pt -> pids,
-                (pt -> max_size += PIDBUF)*sizeof(pt -> max_size));
+                             (pt -> max_size += PIDBUF)*sizeof(pt -> max_size));
     }
     pt -> pids[pt -> size++] = pid;
 }
 
-static void add_loud(pid_table *pt, int pid){
+static void add_loud(pid_table *pt, int pid)
+{
     sperr(itos(pt -> size));
     sperr(" - Процесс ");
     sperr2n(itos(pid), " запущен в обработку");
     add(pt, pid);
 }
 
-static void rem(pid_table *pt, int pid){
+static void rem(pid_table *pt, int pid)
+{
     int i;
     for(i = 0; pt -> pids[i] != pid; i++);
     pt -> pids[i] = 0;
     pt -> size--;
 }
 
-static void init(pid_table *pt){
+static void init(pid_table *pt)
+{
     pt -> pids = NULL;
     pt -> size = 0;
-    pt -> max_size = 0;   
+    pt -> max_size = 0;
 }
 
-static void term(pid_table *pt){
+static void term(pid_table *pt)
+{
     pt -> pids = realloc(pt -> pids, (pt -> size)*sizeof(pt -> pids));
     pt -> max_size = pt -> size;
 }
 
-static void clean(pid_table *pt){
+static void clean(pid_table *pt)
+{
     free(pt->pids);
     pt -> size = 0;
     pt -> max_size = 0;

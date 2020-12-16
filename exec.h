@@ -11,7 +11,7 @@ struct p_table
 };
 typedef struct p_table pid_table;
 
-/* Запустить дерево t в обработку */ 
+/* Запустить дерево t в обработку */
 void execute(tree t, pid_table * pt);
 
 /* Инициализация таблицы фоновых процессов */

@@ -23,7 +23,7 @@ int main()
             print_list(lst);
         t = build_tree(lst);
         clear_list(lst);
-        if (DEBUG) 
+        if (DEBUG)
             print_tree(t, 0);
         execute(t, pt);
         check_back(pt);
