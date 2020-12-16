@@ -481,6 +481,7 @@ void print_tree(tree t, int shift)
 void clear_tree(tree t)
 {
     int i = 0;
+    parnts = 0;
     if (t == NULL) return;
     if (t -> psubcmd != NULL)
         clear_tree(t -> psubcmd);
