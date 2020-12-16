@@ -90,12 +90,14 @@ int check_back(pid_table *pt)
     return 0;
 }
 
-void clean_back(pid_table *pt)
+void clean_back(pid_table *pt, int force)
 {
     int i;
-    for(i = 0; i < pt -> max_size; i++)
-        if(pt -> pids[i] != 0)
-            kill(i, SIGKILL);
+    if (force){
+        for(i = 0; i < pt -> max_size; i++)
+            if(pt -> pids[i] != 0)
+                kill(pt -> pids[i], SIGKILL);
+    }
     clean(pt);
     free(pt);
 }
@@ -164,7 +166,6 @@ static void exec_unit(tree t, tree orig, pid_table * pt)
 {
     int errno_saved;
     pid_table * pt_loc;
-    signal(SIGINT, SIG_DFL);
     if (t -> psubcmd == NULL)
     {
 
@@ -174,17 +175,17 @@ static void exec_unit(tree t, tree orig, pid_table * pt)
         sperr(t -> argv[0]);
         sperr(": ");
         clear_tree(orig);
-        clean_back(pt);
+        clean_back(pt, 0);
         perr(strerror(errno_saved));
     }
     else
     {
         conf_io(t);
-        clean_back(pt);
+        clean_back(pt, 0);
         pt_loc = init_back();
         exec_rec(t -> psubcmd, orig, pt_loc);
         while(check_back(pt_loc) == 0);
-        clean_back(pt_loc);
+        clean_back(pt_loc, 0);
         clear_tree(orig);
         exit(0);
     }
@@ -288,7 +289,7 @@ static int exec_pipe(tree *tr, tree orig, pid_table * pt_gl)
     term(&pt);
     if (t -> backgrnd == 1)
     {
-        clean(pt_gl);
+        clean(&pt);
         return 0;
     }
     while (pt.size > 0)
@@ -297,9 +298,11 @@ static int exec_pipe(tree *tr, tree orig, pid_table * pt_gl)
             {
                 errno = 0;
                 if((pid = waitpid(pt.pids[i], &status, WNOHANG)) != 0)
+                {
                     if (get_status(status) != 0)
                         ret = -1;
-                rem(&pt, pt.pids[i]);
+                    rem(&pt, pt.pids[i]);
+                }
                 if (pid == -1)
                 {
                     sperr2n(strerror(errno),"");
@@ -407,6 +410,8 @@ static void conf_io(tree t)
 
 static void make_back(tree t)
 {
+    
+    signal(SIGINT, SIG_DFL);
     if (t -> backgrnd == 0) return;
     errno = 0;
     int nullin = open("/dev/null", O_RDONLY, 0);

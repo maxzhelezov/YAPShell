@@ -4,6 +4,7 @@
 #include "io.h"
 #include <sys/signal.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 /* Отладка */
 #define DEBUG 0
@@ -31,7 +32,7 @@ int main()
         print_str(">>> ");
     }
     print_str("\n");
-    clean_back(pt);
+    clean_back(pt, 1);
     return 0;
 }
 
