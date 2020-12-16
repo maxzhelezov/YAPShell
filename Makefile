@@ -19,10 +19,10 @@ list.c: list.h
 tree.c: tree.h
 exec.c: exec.h
 
-run:
+run: all
 	rlwrap ./$(BINARIES)
 
-leak:
+leak: all
 	valgrind --leak-check=full --show-leak-kinds=all ./$(BINARIES)
 
 clean:
