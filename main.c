@@ -6,7 +6,7 @@
 #include <sys/types.h>
 
 /* Отладка */
-#define DEBUG 1
+#define DEBUG 0
 
 int main()
 {
